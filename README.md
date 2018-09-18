@@ -26,11 +26,8 @@ Testing
 					echo "Today is " . date("h:i:sa") . "<br>";
 					?>
 		C. save and close it
-	
-	2. Restart the "httpd" services to detect the php configuration
-		sudo systemctl restart httpd.service
 
-	3. Refresh the page in the browser
+	2. Refresh the page in the browser
 		<ip>:<port>/dynamic.php
 
 Debugging (if page is not displayed)
@@ -43,6 +40,9 @@ Debugging (if page is not displayed)
 
 :pushpin: "php.ini" file may not be available
 		_`ls -l /etc/php.ini`_
+
+Note: Restart the "httpd" to detect the changes in the php configuration
+	_`sudo systemctl restart httpd.service`_
 
 Additional
 -----------------------
