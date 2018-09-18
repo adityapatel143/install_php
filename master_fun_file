@@ -1,0 +1,233 @@
+##############################################
+#Purpos : To store functions
+#Version: 2.0
+#Owner  : Aditya P <adityapatel@mycompany.com>
+#Input  : None
+#Output : None
+###############################################
+
+
+#======================= function to check root ===============#
+
+#checking for root user
+root_or_not()
+{
+if [ $(id -u) != 0 ]; then
+        echo -e "\nyou are not a root user !!!"
+	echo -e "Usage : sudo $0 \n"
+        exit
+fi
+}
+
+#------------------------------------------------------------#
+
+
+#===============function to check & install package=============#
+
+check_install_package()
+{
+#checking if the package is installed or not
+echo -e "Checking for $PACKAGE_NAME package. . .\n"
+rpm -q $PACKAGE_NAME
+if [ $? = 0 ]; then
+        echo -e "package - > \"$PACKAGE_NAME\" is already installed !!!\n"
+else
+        echo -e "installing the package + + + \n"
+        yum -y install $PACKAGE_NAME    # command to install the package
+        # checking if the package is installed successfully or not
+        if [ $? = 0 ]; then
+                echo -e "\nPackage : $PACKAGE_NAME is installed successfully\n"
+        else
+                echo -e "\nPackage : $PACKAGE_NAME in not installed OR package name is invalid\n"
+        fi
+fi
+}
+
+#---------------------------------------------------------------#
+
+#=================function to stop service======================#
+stop_service()
+{
+SERVICE_STATUS=`systemctl status $SERVICE_NAME.service | grep "Active" | awk '{print $2}'`
+        # if firewall is on, stop the firewall
+        if [ "$SERVICE_STATUS" == "active" ]; then
+                echo -e "\n$SERVICE_NAME is ON . . .\n"
+                echo -e " Stoping $SERVICE_NAME !!! ...\n"
+                systemctl stop $SERVICE_NAME.service # stoping the firewall
+                if [ $? = 0 ]; then
+                        echo -e "******  $SERVICE_NAME stopped successfully  ******\n"
+                else
+                        echo -e "Error !!!! in stoping the $SERVICE_NAME\n"
+                        echo -e "Please see the logs for detail ...\n"
+                        echo -e "!!! Exiting the script !!!\n"
+                        exit    # Stop the further execution of script
+                fi
+        else
+                echo -e "\n******  $SERVICE_NAME service is OFF  ******\n"
+        fi
+}
+
+#---------------------------------------------------------------#
+
+#===========function to disable service=============#
+
+disable_service()
+{
+        SERVICE_STATUS=`systemctl status $SERVICE_NAME.service | grep "Loaded" | awk '{print $4}'`
+
+        # if firewall is enabled, disable the firewall
+        if [ "$SERVICE_STATUS" == "enabled;" ]; then
+                echo -e "$SERVICE_NAME is enabled . . .\n"
+                echo -e " Disabiling the $SERVICE_NAME !!! ...\n"
+                systemctl disable $SERVICE_NAME.service # disable the firewall
+                if [ $? = 0 ]; then
+                        echo -e "******  $SERVICE_NAME service is  disabled successfully  ******\n"
+                else
+                        echo -e "Error !!!! in disabling the $SERVICE_NAME \n"
+                        echo -e "please see the logs for detail ...\n"
+                        echo -e "!!! Exiting the script !!!\n"
+                        exit    #stop the further execution of script
+                fi
+        else
+                echo -e "******  $SERVICE_NAME is in disabled state  ******\n"
+        fi
+}
+
+#--------------------------------------------------------------#
+
+# SELinux stands for Security-Enhanced Linux. It is a way to improve the server security.
+# 1. Enforced : Actions contrary to the policy are blocked and a corresponding event is logged in the audit log.
+# 2. Permissive : Actions contrary to the policy are only logged in the audit log.
+# 3. Disabled : The SELinux is disabled entirely.
+
+#========function to change server security permissive maode permanently===#
+
+change_to_permissive()
+{
+        # ******---------setting to "Permissive" mode (permanentaly)-----********
+        echo -e "getenforce status : `/usr/sbin/getenforce`\n"  # checking the current status
+
+        SELINUX_CONFIG_FILE=/etc/selinux/config         #storing the path of SELINUX configuration file
+
+        if [ `/usr/sbin/getenforce` != "Permissive" ]; then
+                #changing the selinux file for making permanent changes
+                sed -i 's/SELINUX=enforcing/SELINUX=permissive/' $SELINUX_CONFIG_FILE
+
+                # checking if '/etc/selinux/config' file successfully changed or not
+                if [ `cat $SELINUX_CONFIG_FILE | grep "SELINUX=permissive"` == "SELINUX=permissive" ]; then
+                        echo -e "\nfile : '/etc/selinux/config' edited successfully\n"
+                        echo -e "Changed line is: " `cat $SELINUX_CONFIG_FILE | grep "SELINUX=permissive"`
+
+                        setenforce 0    # changing the SELINUX permissions
+                        # checking if SELINUX permissions changed successfully
+                        if [ `/usr/sbin/getenforce` == "Permissive" ]; then
+                                echo -e "SELINUX permissions changed to \"Permissive\"\n"
+                        else
+                                echo -e "Error !!! Unble to modify the SELINUX Permissions.\n"
+                                echo -e " please see the logs for detail ...\n"
+                                echo -e "!!! Exiting the script !!!\n"
+                                exit    #stop the further execution of script
+                        fi
+                else
+                        echo -e "!!! Error in modifying the file '/etc/selinux/config'"
+                        echo -e "Please see the log file ....."
+                        echo -e "!!! Execiting the script !!!\n"
+                        exit
+                fi
+        else
+                echo -e "System is already in the \"Permissive Mode\"\n"
+        fi
+}
+
+#---------------------------------------------------------------------#
+
+#===========function to start service=============#
+
+start_service()
+{
+        SERVICE_STATUS=`systemctl status $SERVICE_NAME.service | grep "Active" | awk '{print $2}'`
+        # check if service is enabled
+        if [ "$SERVICE_STATUS" != "active" ]; then
+                echo -e "\n$SERVICE_NAME service is off . . .\n"
+                echo -e "Starting $SERVICE_NAME service !!! ...\n"
+                systemctl start $SERVICE_NAME.service # starting the service
+                if [ $? = 0 ]; then
+                        echo -e "******  $SERVICE_NAME service started successfully  ******\n"
+                else
+                        echo -e "Error !!!! in starting the $SERVICE_NAME service \n"
+                        echo -e "Please see the logs for detail ...\n"
+                        echo -e "!!! Exiting the script !!!\n"
+                        exit    # Stop the further execution of script
+                fi
+        else
+                echo -e "\n******  $SERVICE_NAME service is running  ******\n"
+        fi
+
+}
+
+#--------------------------------------------------------------------#
+
+#===========function to enable service=============#
+
+enable_service()
+{
+        SERVICE_STATUS=`systemctl status $SERVICE_NAME.service | grep "Loaded" | awk '{print $4}'`
+        # check if service is started/ON
+        if [ "$SERVICE_STATUS" != "enabled;" ]; then
+                echo -e "\n$SERVICE_NAME service is disabled . . .\n"
+                echo -e "Enabling $SERVICE_NAME service !!! ...\n"
+                systemctl enable $SERVICE_NAME.service # enabling the service
+                if [ $? = 0 ]; then
+                        echo -e "******  $SERVICE_NAME service enabled successfully  ******\n"
+                else
+                        echo -e "Error !!!! in enabling the $SERVICE_NAME service \n"
+                        echo -e "Please see the logs for detail ...\n"
+                        echo -e "!!! Exiting the script !!!\n"
+                        exit    # Stop the further execution of script
+                fi
+        else
+                echo -e "\n******  $SERVICE_NAME service is enabled  ******\n"
+        fi
+
+}
+
+#---------------------------------------------------------------------#
+
+#++++++++++ function to check the forwarded port  ++++++++++++++++++++#
+find_port_no()
+{
+        PORT_NO=`netstat -ntpl | grep $SHOW_PORT | awk '{print $4}' | tr -d ':'`
+        netstat -ntpl | grep $SHOW_PORT
+        if [ $? -eq 0 ]; then
+                echo "$SHOW_PORT service is running on port : $PORT_NO"
+        else
+                echo -e "!!! Error !!! $SHOW_PORT service not started on any of the port.\n"
+                echo -e "Please see the log file for more details !!!\n"
+                exit
+        fi
+
+}
+
+#--------------------------------------------------------------------#
+
+#++++++++++ checking if file is present or not   ++++++++++++++++++++#
+
+check_file_status()
+{
+	if [ ! -f "$FILE_PATH/$FILE_NAME" ]
+	then 
+		echo -e "[ERROR] !!! $FILE_NAME not found, please place it in $FILE_PATH/\n"
+		exit
+	else
+		echo -e "[\e[92mOK\e[0m] $FILE_NAME found under $FILE_PATH \n"
+	fi
+}
+
+#-----------------------------
+
+application_address()
+{
+	SYSTEM_IP=`ip route | grep -v default | grep enp0s3 | awk '{print $9}'`
+	APP_PORT=`netstat -ntpl | grep $APPLICATION_PORT | awk '{print $4}' | tr -d ':'` # tr -d ':' is used to delete the collan ":"
+	echo -e "$SYSTEM_IP:$APP_PORT"
+}
